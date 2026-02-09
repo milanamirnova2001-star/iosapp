@@ -143,16 +143,28 @@ struct DashboardView: View {
             Text("Расходы по категориям")
                 .font(.headline)
             
-            Chart(store.expensesByCategory, id: \.category) { item in
-                SectorMark(
-                    angle: .value("Сумма", item.amount),
-                    innerRadius: .ratio(0.6),
-                    angularInset: 1.5
-                )
-                .foregroundStyle(item.category.color)
-                .cornerRadius(4)
+            if #available(iOS 17.0, *) {
+                Chart(store.expensesByCategory, id: \.category) { item in
+                    SectorMark(
+                        angle: .value("Сумма", item.amount),
+                        innerRadius: .ratio(0.6),
+                        angularInset: 1.5
+                    )
+                    .foregroundStyle(item.category.color)
+                    .cornerRadius(4)
+                }
+                .frame(height: 200)
+            } else {
+                Chart(store.expensesByCategory, id: \.category) { item in
+                    BarMark(
+                        x: .value("Категория", item.category.name),
+                        y: .value("Сумма", item.amount)
+                    )
+                    .foregroundStyle(item.category.color)
+                    .cornerRadius(4)
+                }
+                .frame(height: 200)
             }
-            .frame(height: 200)
             
             // Legend
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
