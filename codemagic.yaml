@@ -1,0 +1,43 @@
+workflows:
+  ios-build:
+    name: Build Finance App IPA
+    max_build_duration: 30
+    instance_type: mac_mini_m1
+    environment:
+      xcode: latest
+    scripts:
+      - name: Install XcodeGen
+        script: |
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install xcodegen
+
+      - name: Generate Xcode project
+        script: |
+          xcodegen generate
+          echo "Xcode project generated successfully"
+
+      - name: Build archive
+        script: |
+          xcodebuild archive \
+            -project FinanceApp.xcodeproj \
+            -scheme FinanceApp \
+            -archivePath $CM_BUILD_DIR/build/FinanceApp.xcarchive \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination "generic/platform=iOS" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            ONLY_ACTIVE_ARCH=NO
+
+      - name: Create IPA from archive
+        script: |
+          mkdir -p $CM_BUILD_DIR/build/Payload
+          cp -r $CM_BUILD_DIR/build/FinanceApp.xcarchive/Products/Applications/FinanceApp.app $CM_BUILD_DIR/build/Payload/
+          cd $CM_BUILD_DIR/build
+          zip -r FinanceApp.ipa Payload
+          echo "IPA created successfully at $CM_BUILD_DIR/build/FinanceApp.ipa"
+
+    artifacts:
+      - build/FinanceApp.ipa
+      - build/FinanceApp.xcarchive
