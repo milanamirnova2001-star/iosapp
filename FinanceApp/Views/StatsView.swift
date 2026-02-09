@@ -6,36 +6,39 @@ struct StatsView: View {
     
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 16) {
-                    // Month Selector
-                    monthSelector
-                    
-                    // Summary Cards
-                    summaryCards
-                    
-                    // Income vs Expense Bar Chart
-                    incomeExpenseChart
-                    
-                    // Top Expenses
-                    if !store.topExpenses.isEmpty {
-                        topExpensesCard
+            ZStack {
+                DesignSystem.background.ignoresSafeArea()
+                
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Month Selector
+                        monthSelector
+                        
+                        // Summary Cards
+                        summaryCards
+                        
+                        // Income vs Expense Bar Chart
+                        incomeExpenseChart
+                        
+                        // Top Expenses
+                        if !store.topExpenses.isEmpty {
+                            topExpensesCard
+                        }
+                        
+                        // Daily Spending Chart
+                        if store.monthlyExpense > 0 {
+                            dailySpendingChart
+                        }
+                        
+                        // Category Breakdown
+                        if !store.expensesByCategory.isEmpty {
+                            categoryBreakdown
+                        }
                     }
-                    
-                    // Daily Spending Chart
-                    if store.monthlyExpense > 0 {
-                        dailySpendingChart
-                    }
-                    
-                    // Category Breakdown
-                    if !store.expensesByCategory.isEmpty {
-                        categoryBreakdown
-                    }
+                    .padding(.horizontal)
+                    .padding(.bottom, 100)
                 }
-                .padding(.horizontal)
-                .padding(.bottom, 20)
             }
-            .background(Color.appBackground)
             .navigationTitle("Статистика")
         }
     }
@@ -48,14 +51,16 @@ struct StatsView: View {
                 withAnimation { store.changeMonth(by: -1) }
             } label: {
                 Image(systemName: "chevron.left")
-                    .font(.title3.bold())
-                    .foregroundColor(.accentColor)
+                    .foregroundColor(.white)
+                    .padding(8)
+                    .background(Circle().fill(DesignSystem.cardBackground))
             }
             
             Spacer()
             
             Text(store.monthYearString)
                 .font(.headline)
+                .foregroundColor(.white)
             
             Spacer()
             
@@ -63,11 +68,11 @@ struct StatsView: View {
                 withAnimation { store.changeMonth(by: 1) }
             } label: {
                 Image(systemName: "chevron.right")
-                    .font(.title3.bold())
-                    .foregroundColor(.accentColor)
+                    .foregroundColor(.white)
+                    .padding(8)
+                    .background(Circle().fill(DesignSystem.cardBackground))
             }
         }
-        .padding(.horizontal, 8)
         .padding(.vertical, 4)
     }
     
@@ -78,99 +83,109 @@ struct StatsView: View {
             summaryCard(
                 title: "Доходы",
                 amount: store.monthlyIncome,
-                color: .incomeGreen,
-                icon: "arrow.up.circle.fill"
+                color: DesignSystem.income,
+                icon: "arrow.up.right"
             )
             summaryCard(
                 title: "Расходы",
                 amount: store.monthlyExpense,
-                color: .expenseRed,
-                icon: "arrow.down.circle.fill"
-            )
-            summaryCard(
-                title: "Баланс",
-                amount: store.monthlyBalance,
-                color: store.monthlyBalance >= 0 ? .incomeGreen : .expenseRed,
-                icon: "equal.circle.fill"
+                color: DesignSystem.expense,
+                icon: "arrow.down.left"
             )
         }
     }
     
     private func summaryCard(title: String, amount: Double, color: Color, icon: String) -> some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 8) {
             Image(systemName: icon)
-                .font(.title2)
+                .font(.headline)
                 .foregroundColor(color)
+                .padding(10)
+                .background(color.opacity(0.1))
+                .clipShape(Circle())
+            
+            Text(amount.asCurrency(store.currency))
+                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .foregroundColor(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            
             Text(title)
                 .font(.caption)
-                .foregroundColor(.secondary)
-            Text(amount.asCurrency(store.currency))
-                .font(.system(size: 14, weight: .bold, design: .rounded))
-                .foregroundColor(color)
-                .minimumScaleFactor(0.5)
-                .lineLimit(1)
+                .foregroundColor(DesignSystem.textSecondary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 14)
-        .background(Color.cardBackground)
-        .cornerRadius(14)
+        .padding(.vertical, 16)
+        .background(DesignSystem.cardBackground)
+        .cornerRadius(20)
     }
     
     // MARK: - Income vs Expense Chart
     
     private var incomeExpenseChart: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Доходы vs Расходы")
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Баланс")
                 .font(.headline)
+                .foregroundColor(.white)
             
             Chart {
                 BarMark(
-                    x: .value("Тип", "Доходы"),
+                    x: .value("Тип", "Доход"),
                     y: .value("Сумма", store.monthlyIncome)
                 )
-                .foregroundStyle(Color.incomeGreen.gradient)
+                .foregroundStyle(DesignSystem.income.gradient)
                 .cornerRadius(8)
                 
                 BarMark(
-                    x: .value("Тип", "Расходы"),
+                    x: .value("Тип", "Расход"),
                     y: .value("Сумма", store.monthlyExpense)
                 )
-                .foregroundStyle(Color.expenseRed.gradient)
+                .foregroundStyle(DesignSystem.expense.gradient)
                 .cornerRadius(8)
             }
             .frame(height: 200)
             .chartYAxis {
                 AxisMarks(position: .leading) { value in
-                    AxisValueLabel {
+                    AxisValueLabel() {
                         if let val = value.as(Double.self) {
                             Text(formatShort(val))
                                 .font(.caption2)
+                                .foregroundColor(DesignSystem.textSecondary)
                         }
                     }
-                    AxisGridLine()
+                    AxisGridLine(stroke: StrokeStyle(lineWidth: 1, dash: [5, 5]))
+                        .foregroundStyle(Color.white.opacity(0.1))
+                }
+            }
+            .chartXAxis {
+                AxisMarks { value in
+                    AxisValueLabel()
+                        .foregroundStyle(Color.white)
                 }
             }
         }
-        .cardStyle()
+        .padding(20)
+        .modernCard()
     }
     
     // MARK: - Top Expenses
     
     private var topExpensesCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
             Text("Топ расходов")
                 .font(.headline)
+                .foregroundColor(.white)
             
             ForEach(Array(store.topExpenses.enumerated()), id: \.element.id) { index, transaction in
                 HStack(spacing: 12) {
                     Text("\(index + 1)")
                         .font(.caption.bold())
-                        .foregroundColor(.secondary)
+                        .foregroundColor(DesignSystem.textSecondary)
                         .frame(width: 20)
                     
                     ZStack {
                         Circle()
-                            .fill(transaction.category.color.opacity(0.15))
+                            .fill(transaction.category.color.opacity(0.1))
                             .frame(width: 36, height: 36)
                         Image(systemName: transaction.category.icon)
                             .font(.caption)
@@ -179,30 +194,37 @@ struct StatsView: View {
                     
                     VStack(alignment: .leading, spacing: 2) {
                         Text(transaction.note.isEmpty ? transaction.category.name : transaction.note)
-                            .font(.subheadline)
+                            .font(.subheadline.bold())
+                            .foregroundColor(.white)
                             .lineLimit(1)
                         Text(transaction.date.shortDateString)
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(DesignSystem.textSecondary)
                     }
                     
                     Spacer()
                     
                     Text(transaction.amount.asCurrency(store.currency))
                         .font(.subheadline.bold())
-                        .foregroundColor(.expenseRed)
+                        .foregroundColor(.white)
+                }
+                
+                if index < store.topExpenses.count - 1 {
+                    Divider().background(Color.white.opacity(0.1))
                 }
             }
         }
-        .cardStyle()
+        .padding(20)
+        .modernCard()
     }
     
     // MARK: - Daily Spending Chart
     
     private var dailySpendingChart: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Расходы по дням")
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Динамика расходов")
                 .font(.headline)
+                .foregroundColor(.white)
             
             let dailyData = store.dailyExpenses
             let avgDaily = store.monthlyExpense / Double(max(dailyData.count, 1))
@@ -215,81 +237,73 @@ struct StatsView: View {
                     )
                     .foregroundStyle(
                         item.amount > avgDaily * 1.5
-                        ? Color.expenseRed.gradient
-                        : Color.accentColor.gradient
+                        ? DesignSystem.expense.gradient
+                        : DesignSystem.primary.gradient
                     )
                     .cornerRadius(2)
                 }
                 
                 RuleMark(y: .value("Среднее", avgDaily))
-                    .foregroundStyle(.orange)
-                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 3]))
-                    .annotation(position: .top, alignment: .trailing) {
-                        Text("Среднее")
-                            .font(.system(size: 9))
-                            .foregroundColor(.orange)
-                    }
+                    .foregroundStyle(Color.white.opacity(0.5))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 5]))
             }
             .frame(height: 160)
             .chartXAxis {
                 AxisMarks(values: .stride(by: 5)) { value in
-                    AxisValueLabel()
-                    AxisGridLine()
+                    AxisValueLabel().foregroundStyle(DesignSystem.textSecondary)
                 }
             }
             .chartYAxis {
                 AxisMarks(position: .leading) { value in
-                    AxisValueLabel {
-                        if let val = value.as(Double.self) {
-                            Text(formatShort(val))
-                                .font(.caption2)
-                        }
-                    }
+                    AxisGridLine(stroke: StrokeStyle(lineWidth: 1, dash: [5, 5]))
+                        .foregroundStyle(Color.white.opacity(0.1))
                 }
             }
         }
-        .cardStyle()
+        .padding(20)
+        .modernCard()
     }
     
     // MARK: - Category Breakdown
     
     private var categoryBreakdown: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 20) {
             Text("По категориям")
                 .font(.headline)
+                .foregroundColor(.white)
             
             ForEach(store.expensesByCategory, id: \.category) { item in
-                VStack(spacing: 6) {
+                VStack(spacing: 8) {
                     HStack {
                         Image(systemName: item.category.icon)
                             .foregroundColor(item.category.color)
                             .frame(width: 20)
                         Text(item.category.name)
                             .font(.subheadline)
+                            .foregroundColor(.white)
                         Spacer()
                         Text(item.amount.asCurrency(store.currency))
                             .font(.subheadline.bold())
-                        Text(percentString(item.amount))
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .frame(width: 40, alignment: .trailing)
+                            .foregroundColor(.white)
                     }
                     
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
                             RoundedRectangle(cornerRadius: 3)
-                                .fill(Color.gray.opacity(0.1))
+                                .fill(Color.white.opacity(0.1))
                                 .frame(height: 6)
                             RoundedRectangle(cornerRadius: 3)
                                 .fill(item.category.color)
                                 .frame(width: geo.size.width * barFraction(item.amount), height: 6)
+                                .neonGlow(item.category.color)
                         }
                     }
                     .frame(height: 6)
                 }
             }
         }
-        .cardStyle()
+        .padding(20)
+        .modernCard()
     }
     
     // MARK: - Helpers
@@ -301,12 +315,6 @@ struct StatsView: View {
             return String(format: "%.0fК", value / 1_000)
         }
         return String(format: "%.0f", value)
-    }
-    
-    private func percentString(_ amount: Double) -> String {
-        guard store.monthlyExpense > 0 else { return "0%" }
-        let percent = (amount / store.monthlyExpense) * 100
-        return String(format: "%.0f%%", percent)
     }
     
     private func barFraction(_ amount: Double) -> CGFloat {

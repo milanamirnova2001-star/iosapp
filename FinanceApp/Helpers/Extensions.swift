@@ -1,5 +1,18 @@
-import Foundation
 import SwiftUI
+
+// MARK: - Design System
+
+struct DesignSystem {
+    static let background = Color(hex: "050505") // Почти черный
+    static let cardBackground = Color(hex: "151517") // Темно-серый для карточек
+    static let primary = Color(hex: "6C63FF") // Фиолетовый акцент
+    static let income = Color(hex: "00E676") // Неоновый зеленый
+    static let expense = Color(hex: "FF3D57") // Неоновый красный
+    static let textPrimary = Color.white
+    static let textSecondary = Color.white.opacity(0.6)
+    
+    static let cornerRadius: CGFloat = 24
+}
 
 // MARK: - Date Extensions
 
@@ -80,27 +93,69 @@ extension Double {
     }
 }
 
-// MARK: - View Extensions
-
-extension View {
-    func cardStyle() -> some View {
-        self
-            .padding(16)
-            .background(Color(.secondarySystemGroupedBackground))
-            .cornerRadius(16)
-    }
-}
-
 // MARK: - Color Extensions
 
 extension Color {
-    static let incomeGreen = Color(red: 0.2, green: 0.78, blue: 0.35)
-    static let expenseRed = Color(red: 0.95, green: 0.3, blue: 0.3)
-    static let cardBackground = Color(.secondarySystemGroupedBackground)
-    static let appBackground = Color(.systemGroupedBackground)
+    init(hex: String) {
+        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        var int: UInt64 = 0
+        Scanner(string: hex).scanHexInt64(&int)
+        let a, r, g, b: UInt64
+        switch hex.count {
+        case 3: // RGB (12-bit)
+            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
+        case 6: // RGB (24-bit)
+            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
+        case 8: // ARGB (32-bit)
+            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
+        default:
+            (a, r, g, b) = (1, 1, 1, 0)
+        }
+
+        self.init(
+            .sRGB,
+            red: Double(r) / 255,
+            green: Double(g) / 255,
+            blue: Double(b) / 255,
+            opacity: Double(a) / 255
+        )
+    }
 }
 
-// MARK: - Array Extension for Grouping
+// MARK: - View Modifiers
+
+struct ModernCard: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .background(DesignSystem.cardBackground)
+            .cornerRadius(DesignSystem.cornerRadius)
+            .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 5)
+    }
+}
+
+struct NeonGlow: ViewModifier {
+    var color: Color
+    func body(content: Content) -> some View {
+        content
+            .shadow(color: color.opacity(0.5), radius: 10, x: 0, y: 0)
+    }
+}
+
+extension View {
+    func modernCard() -> some View {
+        self.modifier(ModernCard())
+    }
+    
+    func neonGlow(_ color: Color) -> some View {
+        self.modifier(NeonGlow(color: color))
+    }
+    
+    func appBackground() -> some View {
+        self.background(DesignSystem.background.ignoresSafeArea())
+    }
+}
+
+// MARK: - Grouping
 
 extension Array where Element == Transaction {
     func groupedByDate() -> [(date: String, displayDate: String, transactions: [Transaction])] {

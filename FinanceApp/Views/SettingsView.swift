@@ -17,76 +17,90 @@ struct SettingsView: View {
     
     var body: some View {
         NavigationStack {
-            Form {
-                // Currency
-                Section("Валюта") {
-                    Picker("Валюта", selection: $store.currency) {
-                        ForEach(Array(zip(currencies, currencyNames)), id: \.0) { symbol, name in
-                            Text(name).tag(symbol)
+            ZStack {
+                DesignSystem.background.ignoresSafeArea()
+                
+                Form {
+                    // Currency
+                    Section {
+                        Picker("Валюта", selection: $store.currency) {
+                            ForEach(Array(zip(currencies, currencyNames)), id: \.0) { symbol, name in
+                                Text(name).tag(symbol)
+                            }
                         }
-                    }
-                }
-                
-                // Stats
-                Section("Статистика") {
-                    HStack {
-                        Text("Всего операций")
-                        Spacer()
-                        Text("\(store.transactions.count)")
-                            .foregroundColor(.secondary)
-                    }
-                    HStack {
-                        Text("Ежемесячных платежей")
-                        Spacer()
-                        Text("\(store.recurringPayments.count)")
-                            .foregroundColor(.secondary)
-                    }
-                    HStack {
-                        Text("Общий баланс")
-                        Spacer()
-                        Text(store.totalBalance.asCurrency(store.currency))
-                            .foregroundColor(store.totalBalance >= 0 ? .incomeGreen : .expenseRed)
-                            .bold()
-                    }
-                }
-                
-                // Data Management
-                Section("Управление данными") {
-                    Button {
-                        exportData()
-                    } label: {
-                        Label("Экспорт данных (JSON)", systemImage: "square.and.arrow.up")
+                    } header: {
+                        Text("Основные")
                     }
                     
-                    Button {
-                        showImportPicker = true
-                    } label: {
-                        Label("Импорт данных", systemImage: "square.and.arrow.down")
+                    // Stats
+                    Section {
+                        HStack {
+                            Text("Всего операций")
+                            Spacer()
+                            Text("\(store.transactions.count)")
+                                .foregroundColor(DesignSystem.textSecondary)
+                        }
+                        HStack {
+                            Text("Платежей")
+                            Spacer()
+                            Text("\(store.recurringPayments.count)")
+                                .foregroundColor(DesignSystem.textSecondary)
+                        }
+                        HStack {
+                            Text("Баланс")
+                            Spacer()
+                            Text(store.totalBalance.asCurrency(store.currency))
+                                .foregroundColor(store.totalBalance >= 0 ? DesignSystem.income : DesignSystem.expense)
+                                .bold()
+                        }
+                    } header: {
+                        Text("Статистика")
                     }
                     
-                    Button(role: .destructive) {
-                        showClearConfirm = true
-                    } label: {
-                        Label("Удалить все данные", systemImage: "trash")
-                            .foregroundColor(.red)
+                    // Data Management
+                    Section {
+                        Button {
+                            exportData()
+                        } label: {
+                            Label("Экспорт (JSON)", systemImage: "square.and.arrow.up")
+                                .foregroundColor(.white)
+                        }
+                        
+                        Button {
+                            showImportPicker = true
+                        } label: {
+                            Label("Импорт (JSON)", systemImage: "square.and.arrow.down")
+                                .foregroundColor(.white)
+                        }
+                        
+                        Button(role: .destructive) {
+                            showClearConfirm = true
+                        } label: {
+                            Label("Сбросить все данные", systemImage: "trash")
+                        }
+                    } header: {
+                        Text("Данные")
+                    }
+                    
+                    // About
+                    Section {
+                        HStack {
+                            Text("Версия")
+                            Spacer()
+                            Text("1.0.0")
+                                .foregroundColor(DesignSystem.textSecondary)
+                        }
+                        HStack {
+                            Text("Разработчик")
+                            Spacer()
+                            Text("Finance App")
+                                .foregroundColor(DesignSystem.textSecondary)
+                        }
+                    } header: {
+                        Text("О приложении")
                     }
                 }
-                
-                // About
-                Section("О приложении") {
-                    HStack {
-                        Text("Версия")
-                        Spacer()
-                        Text("1.0.0")
-                            .foregroundColor(.secondary)
-                    }
-                    HStack {
-                        Text("Разработчик")
-                        Spacer()
-                        Text("Finance App")
-                            .foregroundColor(.secondary)
-                    }
-                }
+                .scrollContentBackground(.hidden)
             }
             .navigationTitle("Настройки")
             .navigationBarTitleDisplayMode(.inline)
@@ -94,23 +108,26 @@ struct SettingsView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Готово") { dismiss() }
                         .bold()
+                        .foregroundColor(DesignSystem.primary)
                 }
             }
-            .alert("Удалить все данные?", isPresented: $showClearConfirm) {
+            .alert("Сброс данных", isPresented: $showClearConfirm) {
                 Button("Удалить", role: .destructive) {
                     store.clearAll()
                 }
                 Button("Отмена", role: .cancel) {}
             } message: {
-                Text("Все операции и ежемесячные платежи будут удалены. Это действие нельзя отменить.")
+                Text("Все операции и настройки будут удалены безвозвратно.")
             }
-            .alert("Данные импортированы!", isPresented: $showImportSuccess) {
-                Button("OK") {}
-            }
-            .alert("Ошибка импорта", isPresented: $showImportError) {
+            .alert("Успешно", isPresented: $showImportSuccess) {
                 Button("OK") {}
             } message: {
-                Text("Не удалось прочитать файл. Убедитесь, что это корректный JSON-файл экспорта.")
+                Text("Данные успешно восстановлены.")
+            }
+            .alert("Ошибка", isPresented: $showImportError) {
+                Button("OK") {}
+            } message: {
+                Text("Не удалось прочитать файл. Проверьте формат.")
             }
             .sheet(isPresented: $showExportSheet) {
                 if let url = exportURL {
@@ -132,7 +149,7 @@ struct SettingsView: View {
     private func exportData() {
         guard let data = store.exportJSON() else { return }
         
-        let fileName = "finance_export_\(Date().shortDateString).json"
+        let fileName = "finance_backup_\(Date().shortDateString).json"
         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
         
         do {
@@ -169,16 +186,4 @@ struct SettingsView: View {
             showImportError = true
         }
     }
-}
-
-// MARK: - Share Sheet
-
-struct ShareSheet: UIViewControllerRepresentable {
-    let activityItems: [Any]
-    
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
-    }
-    
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }

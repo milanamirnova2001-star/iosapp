@@ -19,33 +19,37 @@ struct AddTransactionView: View {
     
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 20) {
-                    // Type Switcher
-                    typeSwitcher
-                    
-                    // Amount Input
-                    amountInput
-                    
-                    // Note
-                    noteField
-                    
-                    // Category Grid
-                    categoryPicker
-                    
-                    // Date Picker
-                    datePicker
-                    
-                    // Add Button
-                    addButton
+            ZStack {
+                DesignSystem.background.ignoresSafeArea()
+                
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Type Switcher
+                        typeSwitcher
+                        
+                        // Amount Input
+                        amountInput
+                        
+                        // Note
+                        noteField
+                        
+                        // Category Grid
+                        categoryPicker
+                        
+                        // Date Picker
+                        datePicker
+                        
+                        // Add Button
+                        addButton
+                            .padding(.top, 20)
+                    }
+                    .padding()
                 }
-                .padding()
-            }
-            .background(Color.appBackground)
-            .navigationTitle("Добавить")
-            .overlay {
-                if showSuccess {
-                    successOverlay
+                .navigationTitle("Добавить")
+                .overlay {
+                    if showSuccess {
+                        successOverlay
+                    }
                 }
             }
         }
@@ -54,15 +58,16 @@ struct AddTransactionView: View {
     // MARK: - Type Switcher
     
     private var typeSwitcher: some View {
-        HStack(spacing: 0) {
-            typeButton(type: .expense, label: "Расход", color: .expenseRed)
-            typeButton(type: .income, label: "Доход", color: .incomeGreen)
+        HStack(spacing: 4) {
+            typeButton(type: .expense, label: "Расход")
+            typeButton(type: .income, label: "Доход")
         }
-        .background(Color(.tertiarySystemGroupedBackground))
-        .cornerRadius(12)
+        .padding(4)
+        .background(DesignSystem.cardBackground)
+        .cornerRadius(16)
     }
     
-    private func typeButton(type: TransactionType, label: String, color: Color) -> some View {
+    private func typeButton(type: TransactionType, label: String) -> some View {
         Button {
             withAnimation(.easeInOut(duration: 0.2)) {
                 transactionType = type
@@ -76,10 +81,15 @@ struct AddTransactionView: View {
             Text(label)
                 .font(.headline)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(transactionType == type ? color : Color.clear)
-                .foregroundColor(transactionType == type ? .white : .secondary)
+                .padding(.vertical, 12)
+                .background(
+                    transactionType == type
+                    ? (type == .expense ? DesignSystem.expense : DesignSystem.income)
+                    : Color.clear
+                )
+                .foregroundColor(transactionType == type ? .white : DesignSystem.textSecondary)
                 .cornerRadius(12)
+                .shadow(color: transactionType == type ? (type == .expense ? DesignSystem.expense : DesignSystem.income).opacity(0.4) : .clear, radius: 8)
         }
     }
     
@@ -89,32 +99,49 @@ struct AddTransactionView: View {
         VStack(spacing: 8) {
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 TextField("0", text: $amountText)
-                    .font(.system(size: 52, weight: .bold, design: .rounded))
+                    .font(.system(size: 64, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.center)
                     .minimumScaleFactor(0.5)
+                    .accentColor(transactionType == .expense ? DesignSystem.expense : DesignSystem.income)
                 
                 Text(store.currency)
-                    .font(.system(size: 28, weight: .medium, design: .rounded))
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 32, weight: .medium, design: .rounded))
+                    .foregroundColor(DesignSystem.textSecondary)
             }
-            .padding(.vertical, 8)
+            .padding(.vertical, 20)
         }
-        .cardStyle()
+        .frame(maxWidth: .infinity)
+        .background(DesignSystem.cardBackground)
+        .cornerRadius(24)
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .stroke(
+                    transactionType == .expense ? DesignSystem.expense.opacity(0.3) : DesignSystem.income.opacity(0.3),
+                    lineWidth: 1
+                )
+        )
     }
     
     // MARK: - Note Field
     
     private var noteField: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             Text("Описание")
                 .font(.subheadline)
-                .foregroundColor(.secondary)
-            TextField("Например: Продукты в магазине", text: $note)
+                .foregroundColor(DesignSystem.textSecondary)
+            
+            TextField("Например: Продукты", text: $note)
                 .font(.body)
-                .padding(12)
-                .background(Color(.tertiarySystemGroupedBackground))
-                .cornerRadius(10)
+                .foregroundColor(.white)
+                .padding(16)
+                .background(DesignSystem.cardBackground)
+                .cornerRadius(16)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Color.white.opacity(0.05), lineWidth: 1)
+                )
         }
     }
     
@@ -124,9 +151,9 @@ struct AddTransactionView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Категория")
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundColor(DesignSystem.textSecondary)
             
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 4), spacing: 10) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 4), spacing: 12) {
                 ForEach(categories) { category in
                     categoryButton(category)
                 }
@@ -136,22 +163,25 @@ struct AddTransactionView: View {
     
     private func categoryButton(_ category: TransactionCategory) -> some View {
         Button {
-            withAnimation(.easeInOut(duration: 0.15)) {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                 selectedCategory = category
             }
         } label: {
-            VStack(spacing: 6) {
+            VStack(spacing: 8) {
                 ZStack {
                     Circle()
-                        .fill(selectedCategory == category ? category.color : category.color.opacity(0.12))
-                        .frame(width: 48, height: 48)
+                        .fill(selectedCategory == category ? category.color : category.color.opacity(0.1))
+                        .frame(width: 56, height: 56)
+                        .shadow(color: selectedCategory == category ? category.color.opacity(0.5) : .clear, radius: 8)
+                    
                     Image(systemName: category.icon)
-                        .font(.body)
+                        .font(.title3)
                         .foregroundColor(selectedCategory == category ? .white : category.color)
                 }
+                
                 Text(category.name)
-                    .font(.system(size: 10))
-                    .foregroundColor(selectedCategory == category ? .primary : .secondary)
+                    .font(.system(size: 11))
+                    .foregroundColor(selectedCategory == category ? .white : DesignSystem.textSecondary)
                     .lineLimit(1)
             }
         }
@@ -160,14 +190,19 @@ struct AddTransactionView: View {
     // MARK: - Date Picker
     
     private var datePicker: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             Text("Дата")
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundColor(DesignSystem.textSecondary)
+            
             DatePicker("", selection: $date, displayedComponents: .date)
                 .datePickerStyle(.compact)
                 .labelsHidden()
                 .environment(\.locale, Locale(identifier: "ru_RU"))
+                .colorScheme(.dark)
+                .padding(8)
+                .background(DesignSystem.cardBackground)
+                .cornerRadius(12)
         }
     }
     
@@ -177,17 +212,18 @@ struct AddTransactionView: View {
         Button {
             addTransaction()
         } label: {
-            Text("Добавить операцию")
+            Text("Добавить")
                 .font(.headline)
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
+                .padding(.vertical, 18)
                 .background(
                     (amountText.isEmpty || Double(amountText.replacingOccurrences(of: ",", with: ".")) == nil)
-                    ? Color.gray
-                    : (transactionType == .expense ? Color.expenseRed : Color.incomeGreen)
+                    ? Color.gray.opacity(0.3)
+                    : (transactionType == .expense ? DesignSystem.expense : DesignSystem.income)
                 )
-                .cornerRadius(14)
+                .cornerRadius(18)
+                .shadow(color: (transactionType == .expense ? DesignSystem.expense : DesignSystem.income).opacity(0.4), radius: 10, x: 0, y: 5)
         }
         .disabled(amountText.isEmpty || Double(amountText.replacingOccurrences(of: ",", with: ".")) == nil)
     }
@@ -197,14 +233,18 @@ struct AddTransactionView: View {
     private var successOverlay: some View {
         VStack(spacing: 16) {
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 64))
-                .foregroundColor(.incomeGreen)
-            Text("Операция добавлена!")
+                .font(.system(size: 72))
+                .foregroundColor(DesignSystem.income)
+                .shadow(color: DesignSystem.income.opacity(0.5), radius: 20)
+            
+            Text("Успешно!")
                 .font(.title3.bold())
+                .foregroundColor(.white)
         }
         .padding(40)
         .background(.ultraThinMaterial)
-        .cornerRadius(20)
+        .cornerRadius(24)
+        .shadow(radius: 20)
         .transition(.scale.combined(with: .opacity))
     }
     

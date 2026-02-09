@@ -29,25 +29,60 @@ struct HistoryView: View {
     
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                // Month Selector
-                monthSelector
-                    .padding(.horizontal)
-                    .padding(.top, 8)
+            ZStack {
+                DesignSystem.background.ignoresSafeArea()
                 
-                // Filter
-                filterTabs
-                    .padding(.horizontal)
-                    .padding(.vertical, 8)
-                
-                // Transaction List
-                if groupedTransactions.isEmpty {
-                    emptyState
-                } else {
-                    transactionList
+                VStack(spacing: 0) {
+                    // Month Selector
+                    monthSelector
+                        .padding(.horizontal)
+                        .padding(.top, 8)
+                    
+                    // Filter
+                    filterTabs
+                        .padding(.horizontal)
+                        .padding(.vertical, 16)
+                    
+                    // Transaction List
+                    if groupedTransactions.isEmpty {
+                        emptyState
+                    } else {
+                        ScrollView(showsIndicators: false) {
+                            LazyVStack(spacing: 20) {
+                                ForEach(groupedTransactions, id: \.date) { group in
+                                    VStack(alignment: .leading, spacing: 12) {
+                                        Text(group.displayDate)
+                                            .font(.subheadline.bold())
+                                            .foregroundColor(DesignSystem.textSecondary)
+                                            .padding(.horizontal)
+                                        
+                                        VStack(spacing: 0) {
+                                            ForEach(group.transactions) { transaction in
+                                                Button {
+                                                    editingTransaction = transaction
+                                                } label: {
+                                                    TransactionRow(transaction: transaction)
+                                                        .padding(16)
+                                                        .background(DesignSystem.cardBackground)
+                                                }
+                                                
+                                                if transaction.id != group.transactions.last?.id {
+                                                    Divider()
+                                                        .background(Color.white.opacity(0.1))
+                                                        .padding(.leading, 76)
+                                                }
+                                            }
+                                        }
+                                        .cornerRadius(20)
+                                        .padding(.horizontal)
+                                    }
+                                }
+                            }
+                            .padding(.bottom, 100)
+                        }
+                    }
                 }
             }
-            .background(Color.appBackground)
             .navigationTitle("История")
             .searchable(text: $searchText, prompt: "Поиск операций")
             .sheet(item: $editingTransaction) { transaction in
@@ -64,14 +99,16 @@ struct HistoryView: View {
                 withAnimation { store.changeMonth(by: -1) }
             } label: {
                 Image(systemName: "chevron.left")
-                    .font(.title3.bold())
-                    .foregroundColor(.accentColor)
+                    .foregroundColor(.white)
+                    .padding(8)
+                    .background(Circle().fill(DesignSystem.cardBackground))
             }
             
             Spacer()
             
             Text(store.monthYearString)
                 .font(.headline)
+                .foregroundColor(.white)
             
             Spacer()
             
@@ -79,8 +116,9 @@ struct HistoryView: View {
                 withAnimation { store.changeMonth(by: 1) }
             } label: {
                 Image(systemName: "chevron.right")
-                    .font(.title3.bold())
-                    .foregroundColor(.accentColor)
+                    .foregroundColor(.white)
+                    .padding(8)
+                    .background(Circle().fill(DesignSystem.cardBackground))
             }
         }
     }
@@ -105,43 +143,14 @@ struct HistoryView: View {
                 .font(.subheadline.weight(.medium))
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
-                .background(filter == type ? Color.accentColor : Color(.tertiarySystemGroupedBackground))
-                .foregroundColor(filter == type ? .white : .primary)
+                .background(
+                    filter == type
+                    ? (type == .income ? DesignSystem.income : (type == .expense ? DesignSystem.expense : DesignSystem.primary))
+                    : DesignSystem.cardBackground
+                )
+                .foregroundColor(filter == type ? .white : DesignSystem.textSecondary)
                 .cornerRadius(20)
         }
-    }
-    
-    // MARK: - Transaction List
-    
-    private var transactionList: some View {
-        List {
-            ForEach(groupedTransactions, id: \.date) { group in
-                Section {
-                    ForEach(group.transactions) { transaction in
-                        TransactionRow(transaction: transaction)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                editingTransaction = transaction
-                            }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                Button(role: .destructive) {
-                                    withAnimation {
-                                        store.deleteTransaction(id: transaction.id)
-                                    }
-                                } label: {
-                                    Label("Удалить", systemImage: "trash")
-                                }
-                            }
-                    }
-                } header: {
-                    Text(group.displayDate)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundColor(.secondary)
-                        .textCase(nil)
-                }
-            }
-        }
-        .listStyle(.insetGrouped)
     }
     
     // MARK: - Empty State
@@ -151,14 +160,14 @@ struct HistoryView: View {
             Spacer()
             Image(systemName: "doc.text.magnifyingglass")
                 .font(.system(size: 48))
-                .foregroundColor(.secondary.opacity(0.5))
+                .foregroundColor(DesignSystem.primary.opacity(0.5))
             Text("Операции не найдены")
                 .font(.headline)
-                .foregroundColor(.secondary)
+                .foregroundColor(.white)
             if !searchText.isEmpty {
                 Text("Попробуйте изменить параметры поиска")
                     .font(.subheadline)
-                    .foregroundColor(.secondary.opacity(0.7))
+                    .foregroundColor(DesignSystem.textSecondary)
             }
             Spacer()
         }
@@ -189,57 +198,64 @@ struct EditTransactionView: View {
     
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Сумма") {
-                    TextField("Сумма", text: $amount)
-                        .keyboardType(.decimalPad)
-                        .font(.title2.bold())
-                }
+            ZStack {
+                DesignSystem.background.ignoresSafeArea()
                 
-                Section("Описание") {
-                    TextField("Описание", text: $note)
-                }
-                
-                Section("Категория") {
-                    Picker("Категория", selection: $category) {
-                        let cats = transaction.type == .expense
-                            ? TransactionCategory.expenseCategories
-                            : TransactionCategory.incomeCategories
-                        ForEach(cats) { cat in
+                Form {
+                    Section("Сумма") {
+                        TextField("Сумма", text: $amount)
+                            .keyboardType(.decimalPad)
+                            .font(.title2.bold())
+                    }
+                    
+                    Section("Описание") {
+                        TextField("Описание", text: $note)
+                    }
+                    
+                    Section("Категория") {
+                        Picker("Категория", selection: $category) {
+                            let cats = transaction.type == .expense
+                                ? TransactionCategory.expenseCategories
+                                : TransactionCategory.incomeCategories
+                            ForEach(cats) { cat in
+                                HStack {
+                                    Image(systemName: cat.icon)
+                                    Text(cat.name)
+                                }.tag(cat)
+                            }
+                        }
+                    }
+                    
+                    Section("Дата") {
+                        DatePicker("Дата", selection: $date, displayedComponents: .date)
+                            .environment(\.locale, Locale(identifier: "ru_RU"))
+                    }
+                    
+                    Section {
+                        Button(role: .destructive) {
+                            showDeleteConfirm = true
+                        } label: {
                             HStack {
-                                Image(systemName: cat.icon)
-                                Text(cat.name)
-                            }.tag(cat)
+                                Spacer()
+                                Text("Удалить операцию")
+                                Spacer()
+                            }
                         }
                     }
                 }
-                
-                Section("Дата") {
-                    DatePicker("Дата", selection: $date, displayedComponents: .date)
-                        .environment(\.locale, Locale(identifier: "ru_RU"))
-                }
-                
-                Section {
-                    Button(role: .destructive) {
-                        showDeleteConfirm = true
-                    } label: {
-                        HStack {
-                            Spacer()
-                            Text("Удалить операцию")
-                            Spacer()
-                        }
-                    }
-                }
+                .scrollContentBackground(.hidden)
             }
             .navigationTitle("Редактировать")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Отмена") { dismiss() }
+                        .foregroundColor(.white)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Сохранить") { saveChanges() }
                         .bold()
+                        .foregroundColor(DesignSystem.primary)
                 }
             }
             .alert("Удалить операцию?", isPresented: $showDeleteConfirm) {
@@ -248,8 +264,6 @@ struct EditTransactionView: View {
                     dismiss()
                 }
                 Button("Отмена", role: .cancel) {}
-            } message: {
-                Text("Это действие нельзя отменить")
             }
         }
     }

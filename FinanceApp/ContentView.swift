@@ -4,6 +4,26 @@ struct ContentView: View {
     @EnvironmentObject var store: DataStore
     @State private var selectedTab = 0
     
+    init() {
+        // Customize Tab Bar
+        let tabBarAppearance = UITabBarAppearance()
+        tabBarAppearance.configureWithOpaqueBackground()
+        tabBarAppearance.backgroundColor = UIColor(Color(hex: "0F0F10"))
+        tabBarAppearance.shadowColor = nil
+        
+        UITabBar.appearance().standardAppearance = tabBarAppearance
+        UITabBar.appearance().scrollEdgeAppearance = tabBarAppearance
+        
+        // Customize Navigation Bar
+        let navBarAppearance = UINavigationBarAppearance()
+        navBarAppearance.configureWithTransparentBackground()
+        navBarAppearance.titleTextAttributes = [.foregroundColor: UIColor.white]
+        navBarAppearance.largeTitleTextAttributes = [.foregroundColor: UIColor.white]
+        
+        UINavigationBar.appearance().standardAppearance = navBarAppearance
+        UINavigationBar.appearance().scrollEdgeAppearance = navBarAppearance
+    }
+    
     var body: some View {
         TabView(selection: $selectedTab) {
             DashboardView()
@@ -26,7 +46,7 @@ struct ContentView: View {
             
             HistoryView()
                 .tabItem {
-                    Label("История", systemImage: "clock.arrow.circlepath")
+                    Label("История", systemImage: "clock.fill")
                 }
                 .tag(3)
             
@@ -36,6 +56,7 @@ struct ContentView: View {
                 }
                 .tag(4)
         }
-        .tint(.accentColor)
+        .accentColor(DesignSystem.primary)
+        .preferredColorScheme(.dark)
     }
 }

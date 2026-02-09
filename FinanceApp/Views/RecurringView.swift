@@ -7,23 +7,26 @@ struct RecurringView: View {
     
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 16) {
-                    // Total Card
-                    totalCard
-                    
-                    // Payment List
-                    if store.recurringPayments.isEmpty {
-                        emptyState
-                    } else {
-                        paymentList
+            ZStack {
+                DesignSystem.background.ignoresSafeArea()
+                
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 24) {
+                        // Total Card
+                        totalCard
+                        
+                        // Payment List
+                        if store.recurringPayments.isEmpty {
+                            emptyState
+                        } else {
+                            paymentList
+                        }
                     }
+                    .padding(.horizontal)
+                    .padding(.bottom, 100)
                 }
-                .padding(.horizontal)
-                .padding(.bottom, 20)
             }
-            .background(Color.appBackground)
-            .navigationTitle("Ежемесячные")
+            .navigationTitle("Платежи")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
@@ -31,6 +34,7 @@ struct RecurringView: View {
                     } label: {
                         Image(systemName: "plus.circle.fill")
                             .font(.title3)
+                            .foregroundColor(.white)
                     }
                 }
             }
@@ -47,24 +51,32 @@ struct RecurringView: View {
     
     private var totalCard: some View {
         VStack(spacing: 8) {
-            Text("Ежемесячные расходы")
+            Text("В месяц")
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundColor(DesignSystem.textSecondary)
+            
             Text(store.totalRecurring.asCurrency(store.currency))
-                .font(.system(size: 34, weight: .bold, design: .rounded))
-                .foregroundColor(.expenseRed)
-            Text("\(store.recurringPayments.filter(\.isActive).count) активных платежей")
+                .font(.system(size: 42, weight: .bold, design: .rounded))
+                .foregroundColor(DesignSystem.expense)
+                .shadow(color: DesignSystem.expense.opacity(0.3), radius: 10)
+            
+            Text("\(store.recurringPayments.filter(\.isActive).count) активных")
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundColor(DesignSystem.textSecondary)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 4)
+                .background(Color.white.opacity(0.05))
+                .cornerRadius(12)
         }
         .frame(maxWidth: .infinity)
-        .cardStyle()
+        .padding(32)
+        .modernCard()
     }
     
     // MARK: - Payment List
     
     private var paymentList: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 16) {
             ForEach(store.recurringPayments) { payment in
                 paymentRow(payment)
                     .onTapGesture {
@@ -75,35 +87,35 @@ struct RecurringView: View {
     }
     
     private func paymentRow(_ payment: RecurringPayment) -> some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 16) {
             ZStack {
                 Circle()
-                    .fill(payment.isActive ? payment.category.color.opacity(0.15) : Color.gray.opacity(0.1))
-                    .frame(width: 46, height: 46)
+                    .fill(payment.isActive ? payment.category.color.opacity(0.1) : Color.white.opacity(0.05))
+                    .frame(width: 50, height: 50)
                 Image(systemName: payment.category.icon)
-                    .font(.body)
-                    .foregroundColor(payment.isActive ? payment.category.color : .gray)
+                    .font(.title3)
+                    .foregroundColor(payment.isActive ? payment.category.color : DesignSystem.textSecondary)
             }
             
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(payment.name)
-                    .font(.subheadline.weight(.medium))
-                    .foregroundColor(payment.isActive ? .primary : .secondary)
-                HStack(spacing: 4) {
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(payment.isActive ? .white : DesignSystem.textSecondary)
+                HStack(spacing: 6) {
                     Text(payment.category.name)
                     Text("•")
                     Text("\(payment.dayOfMonth) числа")
                 }
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundColor(DesignSystem.textSecondary)
             }
             
             Spacer()
             
-            VStack(alignment: .trailing, spacing: 4) {
+            VStack(alignment: .trailing, spacing: 8) {
                 Text(payment.amount.asCurrency(store.currency))
-                    .font(.subheadline.bold())
-                    .foregroundColor(payment.isActive ? .expenseRed : .secondary)
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .foregroundColor(payment.isActive ? .white : DesignSystem.textSecondary)
                 
                 // Toggle
                 Button {
@@ -111,57 +123,55 @@ struct RecurringView: View {
                         store.toggleRecurring(payment)
                     }
                 } label: {
-                    Text(payment.isActive ? "Активен" : "Выключен")
-                        .font(.system(size: 10, weight: .medium))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(payment.isActive ? Color.incomeGreen.opacity(0.15) : Color.gray.opacity(0.1))
-                        .foregroundColor(payment.isActive ? .incomeGreen : .gray)
+                    Text(payment.isActive ? "Активен" : "Пауза")
+                        .font(.system(size: 10, weight: .bold))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(payment.isActive ? DesignSystem.income.opacity(0.2) : Color.white.opacity(0.1))
+                        .foregroundColor(payment.isActive ? DesignSystem.income : DesignSystem.textSecondary)
                         .cornerRadius(8)
                 }
             }
         }
-        .padding(14)
-        .background(Color.cardBackground)
-        .cornerRadius(14)
-        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-            Button(role: .destructive) {
-                store.deleteRecurring(id: payment.id)
-            } label: {
-                Label("Удалить", systemImage: "trash")
-            }
-        }
+        .padding(16)
+        .background(DesignSystem.cardBackground)
+        .cornerRadius(20)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(payment.isActive ? payment.category.color.opacity(0.3) : Color.clear, lineWidth: 1)
+        )
     }
     
     // MARK: - Empty State
     
     private var emptyState: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "repeat.circle")
-                .font(.system(size: 48))
-                .foregroundColor(.secondary.opacity(0.5))
-            Text("Нет ежемесячных платежей")
+        VStack(spacing: 16) {
+            Image(systemName: "repeat.circle.fill")
+                .font(.system(size: 64))
+                .foregroundColor(DesignSystem.primary.opacity(0.5))
+            Text("Нет платежей")
                 .font(.headline)
-                .foregroundColor(.secondary)
-            Text("Добавьте регулярные расходы: аренда, подписки, коммунальные услуги")
+                .foregroundColor(.white)
+            Text("Добавьте регулярные расходы: аренда, подписки, интернет")
                 .font(.subheadline)
-                .foregroundColor(.secondary.opacity(0.7))
+                .foregroundColor(DesignSystem.textSecondary)
                 .multilineTextAlignment(.center)
             
             Button {
                 showAddSheet = true
             } label: {
-                Label("Добавить платёж", systemImage: "plus")
+                Text("Добавить первый платёж")
                     .font(.headline)
                     .foregroundColor(.white)
                     .padding(.horizontal, 24)
-                    .padding(.vertical, 12)
-                    .background(Color.accentColor)
-                    .cornerRadius(12)
+                    .padding(.vertical, 14)
+                    .background(DesignSystem.primary)
+                    .cornerRadius(16)
+                    .shadow(color: DesignSystem.primary.opacity(0.4), radius: 10, x: 0, y: 5)
             }
-            .padding(.top, 8)
+            .padding(.top, 12)
         }
-        .padding(.vertical, 40)
+        .padding(.vertical, 60)
     }
 }
 
@@ -178,41 +188,48 @@ struct AddRecurringView: View {
     
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Название") {
-                    TextField("Например: Аренда квартиры", text: $name)
-                }
+            ZStack {
+                DesignSystem.background.ignoresSafeArea()
                 
-                Section("Сумма") {
-                    TextField("0", text: $amountText)
-                        .keyboardType(.decimalPad)
-                        .font(.title3.bold())
-                }
-                
-                Section("Категория") {
-                    Picker("Категория", selection: $category) {
-                        ForEach(TransactionCategory.expenseCategories) { cat in
-                            HStack {
-                                Image(systemName: cat.icon)
-                                Text(cat.name)
-                            }.tag(cat)
+                Form {
+                    Section("Название") {
+                        TextField("Например: Аренда", text: $name)
+                    }
+                    
+                    Section("Сумма") {
+                        TextField("0", text: $amountText)
+                            .keyboardType(.decimalPad)
+                            .font(.title3.bold())
+                    }
+                    
+                    Section("Категория") {
+                        Picker("Категория", selection: $category) {
+                            ForEach(TransactionCategory.expenseCategories) { cat in
+                                HStack {
+                                    Image(systemName: cat.icon)
+                                    Text(cat.name)
+                                }.tag(cat)
+                            }
                         }
                     }
+                    
+                    Section("День оплаты") {
+                        Stepper("\(dayOfMonth) числа", value: $dayOfMonth, in: 1...31)
+                    }
                 }
-                
-                Section("День оплаты") {
-                    Stepper("\(dayOfMonth) числа каждого месяца", value: $dayOfMonth, in: 1...31)
-                }
+                .scrollContentBackground(.hidden)
             }
             .navigationTitle("Новый платёж")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Отмена") { dismiss() }
+                        .foregroundColor(.white)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Добавить") { addPayment() }
                         .bold()
+                        .foregroundColor(DesignSystem.primary)
                         .disabled(name.isEmpty || amountText.isEmpty)
                 }
             }
@@ -259,53 +276,60 @@ struct EditRecurringView: View {
     
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Название") {
-                    TextField("Название", text: $name)
-                }
+            ZStack {
+                DesignSystem.background.ignoresSafeArea()
                 
-                Section("Сумма") {
-                    TextField("0", text: $amountText)
-                        .keyboardType(.decimalPad)
-                        .font(.title3.bold())
-                }
-                
-                Section("Категория") {
-                    Picker("Категория", selection: $category) {
-                        ForEach(TransactionCategory.expenseCategories) { cat in
+                Form {
+                    Section("Название") {
+                        TextField("Название", text: $name)
+                    }
+                    
+                    Section("Сумма") {
+                        TextField("0", text: $amountText)
+                            .keyboardType(.decimalPad)
+                            .font(.title3.bold())
+                    }
+                    
+                    Section("Категория") {
+                        Picker("Категория", selection: $category) {
+                            ForEach(TransactionCategory.expenseCategories) { cat in
+                                HStack {
+                                    Image(systemName: cat.icon)
+                                    Text(cat.name)
+                                }.tag(cat)
+                            }
+                        }
+                    }
+                    
+                    Section("День оплаты") {
+                        Stepper("\(dayOfMonth) числа", value: $dayOfMonth, in: 1...31)
+                    }
+                    
+                    Section {
+                        Button(role: .destructive) {
+                            showDeleteConfirm = true
+                        } label: {
                             HStack {
-                                Image(systemName: cat.icon)
-                                Text(cat.name)
-                            }.tag(cat)
+                                Spacer()
+                                Text("Удалить платёж")
+                                Spacer()
+                            }
                         }
                     }
                 }
-                
-                Section("День оплаты") {
-                    Stepper("\(dayOfMonth) числа каждого месяца", value: $dayOfMonth, in: 1...31)
-                }
-                
-                Section {
-                    Button(role: .destructive) {
-                        showDeleteConfirm = true
-                    } label: {
-                        HStack {
-                            Spacer()
-                            Text("Удалить платёж")
-                            Spacer()
-                        }
-                    }
-                }
+                .scrollContentBackground(.hidden)
             }
             .navigationTitle("Редактировать")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Отмена") { dismiss() }
+                        .foregroundColor(.white)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Сохранить") { saveChanges() }
                         .bold()
+                        .foregroundColor(DesignSystem.primary)
                 }
             }
             .alert("Удалить платёж?", isPresented: $showDeleteConfirm) {
